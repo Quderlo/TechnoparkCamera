@@ -8,6 +8,7 @@ class Camera:
     last_ready = None
     lock = Lock()
     capture = None
+    result = False
 
     def __init__(self, rtsp_link):
         self.capture = cv2.VideoCapture(rtsp_link)
@@ -21,10 +22,10 @@ class Camera:
                 success = self.capture.grab()
                 if not success:
                     continue  # Если не удалось получить кадр, переходим к следующей итерации
-                _, self.last_frame = self.capture.retrieve()
+                self.result, self.last_frame = self.capture.retrieve()
 
     def getFrame(self):
-        if self.last_frame is not None:  # Check if last frame is not None
+        if self.last_frame is not None and self.result:  # Check if last frame is not None
             return self.last_frame.copy()
         else:
             return None
