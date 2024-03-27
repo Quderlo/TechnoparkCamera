@@ -6,5 +6,5 @@ face_recognizer = dlib.face_recognition_model_v1(
     "dlib_face_recognition_resnet_model_v1.dat")
 cutting_accuracy = 10
 
-rtsp = False
+rtsp = True
 timeout = 30

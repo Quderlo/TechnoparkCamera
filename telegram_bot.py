@@ -17,29 +17,33 @@ class Telegram_bot:
         self.chat_id = t_settings.user_chat_id
 
     async def send_data(self, image, photo, message):
-        await self.bot.send_message(chat_id=self.chat_id, text=message)
+        try:
+            await self.bot.send_message(chat_id=self.chat_id, text=message)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-            temp_filename = temp_file.name
-            cv2.imwrite(temp_filename, image)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                temp_filename = temp_file.name
+                cv2.imwrite(temp_filename, image)
 
-            # Закрываем временный файл явно
-            temp_file.close()
-            await self.bot.send_photo(chat_id=self.chat_id, photo=temp_filename)
+                # Закрываем временный файл явно
+                temp_file.close()
+                await self.bot.send_photo(chat_id=self.chat_id, photo=temp_filename)
 
-            os.unlink(temp_filename)
+                os.unlink(temp_filename)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-            temp_filename = temp_file.name
-            cv2.imwrite(temp_filename, photo)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                temp_filename = temp_file.name
+                cv2.imwrite(temp_filename, photo)
 
-            # Закрываем временный файл явно
-            temp_file.close()
-            await self.bot.send_photo(chat_id=self.chat_id, photo=temp_filename)
+                # Закрываем временный файл явно
+                temp_file.close()
+                await self.bot.send_photo(chat_id=self.chat_id, photo=temp_filename)
 
-            os.unlink(temp_filename)
+                os.unlink(temp_filename)
 
-    def check_data(self, descriptor):
+        except Exception as e:
+            print(f"Error in sending message! {e}")
+
+    def check_data(self, descriptor, image):
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM Persons")
         persons = cursor.fetchall()
@@ -62,7 +66,7 @@ class Telegram_bot:
                     sighting_time = sighting[len(sighting) - 1][2]
                     if datetime.now() - sighting_time > timedelta(seconds=settings.timeout):
                         cursor.execute("INSERT INTO Sightings (person_id, camera_photo) VALUES (%s, %s) RETURNING id",
-                                       (person_id, cv2.imencode('.jpg', photo)[1].tobytes()))
+                                       (person_id, cv2.imencode('.jpg', image)[1].tobytes()))
                         connection.commit()
                         cursor.close()
                         return True, self.create_message(last_name, first_name, patronymic), photo
@@ -76,10 +80,9 @@ class Telegram_bot:
                     cursor.close()
                     return True, self.create_message(last_name, first_name, patronymic), photo
             else:
-                cursor.close()
-                return None, None, None
+                continue
 
-
+        return None, None, None
 
     def create_message(self, last_name, first_name, patronymic):
         return f"{last_name} {first_name} {patronymic} был замечен в {datetime.now().strftime('%H:%M:%S')}"

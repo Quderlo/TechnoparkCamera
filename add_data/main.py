@@ -6,7 +6,6 @@ from insert_person_data import insert_person_data
 
 
 def main():
-    create_database_if_not_exists()
     image = capture_photo()
     descriptor = compute_face_descriptor(image)
 
