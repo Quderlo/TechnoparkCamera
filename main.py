@@ -1,6 +1,5 @@
 import asyncio
 
-
 from camera import Camera
 import cv2
 from datetime import datetime
@@ -22,14 +21,13 @@ async def main():
     cv2.waitKey(2000)
 
     while True:
-        image = cam.getFrame()  # Get the latest frame
+        image = cam.getFrame()  # Последний кадр
 
-        if image is not None:  # Check if the frame is valid
-
+        if image is not None:
 
             if settings.rtsp:
-                x = 1200  # количество пикселей, которые нужно обрезать слева
-                y = 400  # количество пикселей, которые нужно обрезать сверху
+                x = 1200  # обрезать слева
+                y = 400  # обрезать сверху
                 width = image.shape[1] - x
                 height = image.shape[0] - y
                 image = image[y:y + height, x:x + width]
@@ -47,7 +45,8 @@ async def main():
                 landmarks = settings.shape_predictor(gray, face)
                 face_descriptor = settings.face_recognizer.compute_face_descriptor(image, landmarks)
                 image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                # Запускаем асинхронную функцию для отправки данных в Telegram
+
+                # для отправки данных в Telegram
                 await send_data(image, face_descriptor)
 
             if settings.rtsp:

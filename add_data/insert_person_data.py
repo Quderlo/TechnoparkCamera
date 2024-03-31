@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 import psycopg2
 from data_Base_Connect import connection
 
@@ -15,7 +14,7 @@ def insert_person_data(last_name, first_name, patronymic, face_encoding, photo):
 
         # SQL-запрос на вставку данных в таблицу Persons
         sql_query = """
-            INSERT INTO Persons (last_name, first_name, patronymic, face_encoding, photo)
+            INSERT INTO "CameraUI_person" (last_name, first_name, patronymic, face_descriptor, photo)
             VALUES (%s, %s, %s, %s, %s)
         """
         cursor.execute(sql_query,

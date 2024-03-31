@@ -14,38 +14,37 @@ from datetime import datetime, timedelta
 class Telegram_bot:
     def __init__(self):
         self.bot = Bot(token=t_settings.bot_token)
-        self.chat_id = t_settings.user_chat_id
+        self.chats_id = t_settings.user_chat_id
 
     async def send_data(self, image, photo, message):
         try:
-            await self.bot.send_message(chat_id=self.chat_id, text=message)
+            for chat_id in self.chats_id:
+                await self.bot.send_message(chat_id=chat_id, text=message)
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-                temp_filename = temp_file.name
-                cv2.imwrite(temp_filename, image)
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                    temp_filename = temp_file.name
+                    cv2.imwrite(temp_filename, image)
 
-                # Закрываем временный файл явно
-                temp_file.close()
-                await self.bot.send_photo(chat_id=self.chat_id, photo=temp_filename)
+                    temp_file.close()
+                    await self.bot.send_photo(chat_id=chat_id, photo=temp_filename)
 
-                os.unlink(temp_filename)
+                    os.unlink(temp_filename)
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-                temp_filename = temp_file.name
-                cv2.imwrite(temp_filename, photo)
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                    temp_filename = temp_file.name
+                    cv2.imwrite(temp_filename, photo)
 
-                # Закрываем временный файл явно
-                temp_file.close()
-                await self.bot.send_photo(chat_id=self.chat_id, photo=temp_filename)
+                    temp_file.close()
+                    await self.bot.send_photo(chat_id=chat_id, photo=temp_filename)
 
-                os.unlink(temp_filename)
+                    os.unlink(temp_filename)
 
         except Exception as e:
             print(f"Error in sending message! {e}")
 
     def check_data(self, descriptor, image):
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM Persons")
+        cursor.execute('SELECT * FROM "CameraUI_person"')
         persons = cursor.fetchall()
 
         for person in persons:
@@ -58,15 +57,16 @@ class Telegram_bot:
             photo_array = np.frombuffer(person[5], dtype=np.uint8)
             photo = cv2.imdecode(photo_array, cv2.IMREAD_COLOR)
 
-            if distance < 0.55:
+            if distance < 0.5:
                 person_id = person[0]
-                cursor.execute("SELECT * FROM Sightings WHERE person_id = %s", (person_id,))
+                cursor.execute('SELECT * FROM "CameraUI_sighting" WHERE person_id = %s', (person_id,))
                 sighting = cursor.fetchall()
+
                 if sighting:
-                    sighting_time = sighting[len(sighting) - 1][2]
+                    sighting_time = sighting[len(sighting) - 1][1].replace(tzinfo=None)
                     if datetime.now() - sighting_time > timedelta(seconds=settings.timeout):
-                        cursor.execute("INSERT INTO Sightings (person_id, camera_photo) VALUES (%s, %s) RETURNING id",
-                                       (person_id, cv2.imencode('.jpg', image)[1].tobytes()))
+                        cursor.execute('INSERT INTO "CameraUI_sighting" (person_id, sighting_time, camera_photo) VALUES (%s, %s, %s) RETURNING id',
+                                       (person_id, datetime.now(), cv2.imencode('.jpg', image)[1].tobytes()))
                         connection.commit()
                         cursor.close()
                         return True, self.create_message(last_name, first_name, patronymic), photo
@@ -74,14 +74,15 @@ class Telegram_bot:
                         cursor.close()
                         return None, None, None
                 else:
-                    cursor.execute("INSERT INTO Sightings (person_id, camera_photo) VALUES (%s, %s) RETURNING id",
-                                   (person_id, cv2.imencode('.jpg', photo)[1].tobytes()))
+                    cursor.execute(
+                        'INSERT INTO "CameraUI_sighting" (person_id, sighting_time, camera_photo) VALUES (%s, %s, %s) RETURNING id',
+                        (person_id, datetime.now(), cv2.imencode('.jpg', image)[1].tobytes()))
                     connection.commit()
                     cursor.close()
                     return True, self.create_message(last_name, first_name, patronymic), photo
             else:
                 continue
-
+        cursor.close()
         return None, None, None
 
     def create_message(self, last_name, first_name, patronymic):
