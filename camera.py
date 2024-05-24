@@ -21,7 +21,7 @@ class Camera:
             with self.lock:
                 success = self.capture.grab()
                 if not success:
-                    continue  # Если не удалось получить кадр, переходим к следующей итерации
+                    continue
                 self.result, self.last_frame = self.capture.retrieve()
 
     def getFrame(self):
